@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server Running: http://localhost:${PORT}`);
+    console.log(`🚀 Server Running on port ${PORT}`);
 });
 app.use(express.json());
 
@@ -706,3 +706,4 @@ app.post("/api/applyRoomSkin", (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Server Running: http://localhost:${PORT}`);
 });
+
