@@ -1,0 +1,2658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>코인 게임</title>
+
+<style>
+    body {
+        margin: 0;
+        background: linear-gradient(#2b1055, #7597de);
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: sans-serif;
+    }
+
+    #game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    max-width: 420px;
+    max-height: 820px;
+    background: linear-gradient(180deg, #2c1e7a, #6c7bb1);
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 0 auto;
+    }
+
+    /* 상단바 */
+    #top-bar {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(0,0,0,0.45);
+        padding: 8px 15px;
+        border-radius: 15px;
+        backdrop-filter: blur(6px);
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+        white-space: nowrap;
+    }
+
+    #top-username { color: #ffd86b; }
+    #top-balance { color: #fff; }
+
+    .balance-bump {
+        animation: bump 0.25s ease;
+    }
+
+    @keyframes bump {
+        0%   { transform: scale(1); }
+        50%  { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
+
+    /* 팝업 공통 */
+    .popup-screen {
+        display:none;
+        position:absolute;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,0.7);
+        backdrop-filter: blur(5px);
+        padding-top:60px;
+        text-align:center;
+        color:white;
+    }
+
+    .popup-card {
+        width:300px;
+        margin:20px auto;
+        background:#fff;
+        color:#000;
+        border-radius:15px;
+        padding:20px;
+        font-size:16px;
+        text-align:left;
+        max-height:400px;
+        overflow-y:auto;
+        box-shadow:0 8px 18px rgba(0,0,0,0.4);
+        animation: popupIn 0.2s ease-out;
+    }
+
+    @keyframes popupIn {
+        from { opacity:0; transform:translateY(10px); }
+        to   { opacity:1; transform:translateY(0); }
+    }
+
+    .popup-back-btn {
+        margin-top:25px;
+        padding:10px 18px;
+        font-size:20px;
+        border:none;
+        border-radius:50%;
+        background:#444;
+        color:white;
+        cursor:pointer;
+        width:50px;
+        height:50px;
+    }
+
+    /* 로그인 */
+    #login-screen {
+        display:block;
+        position:absolute;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,0.75);
+        backdrop-filter: blur(8px);
+        color:white;
+        text-align:center;
+        padding-top:120px;
+        font-size:18px;
+    }
+
+    #login-box {
+        width:280px;
+        margin:auto;
+        background:#fff;
+        padding:20px;
+        color:#000;
+        border-radius:12px;
+        box-shadow:0 8px 18px rgba(0,0,0,0.5);
+    }
+
+    #login-box input {
+        width:100%;
+        padding:10px;
+        border-radius:8px;
+        border:1px solid #999;
+        margin-top:10px;
+        margin-bottom:10px;
+        font-size:16px;
+    }
+
+    #login-box button {
+        width:100%;
+        padding:10px;
+        border:none;
+        border-radius:8px;
+        background:#4caf50;
+        color:white;
+        cursor:pointer;
+        font-size:16px;
+    }
+
+    /* 메뉴 버튼 */
+    .menu-btn {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        background: rgba(255,255,255 / 0%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 26px;
+        cursor: pointer;
+        box-shadow: 0 3px 8px rgb(0 0 0);
+        transition: 0.1s;
+    }
+    .menu-btn:active { transform: scale(0.9); }
+
+    .left-menu, .right-menu {
+        position: absolute;
+        top: 120px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .left-menu { left: 10px; }
+    .right-menu { right: 10px; }
+
+    #character {
+    display: none !important;
+    background: none !important;
+    }
+
+
+    /* 채굴 애니메이션 */
+    @keyframes pick-swing {
+        0% { transform: rotate(0deg); }
+        25% { transform: rotate(-25deg); }
+        50% { transform: rotate(0deg); }
+        75% { transform: rotate(25deg); }
+        100% { transform: rotate(0deg); }
+    }
+
+    .pickaxe-anim {
+        animation: pick-swing 0.6s ease;
+    }
+    /* ⛏️ 곡괭이 스윙이 보이게 하기 위해 반드시 필요 */
+    #mine-pickaxe {
+        display: inline-block;
+    }
+
+    /* 잭팟 */
+    .unit-btn { padding:8px 12px; border-radius:8px; background:#fff; border:none; cursor:pointer; }
+    .count-btn { padding:10px 20px; border-radius:10px; background:#333; color:white; border:none; cursor:pointer; }
+
+    /* 출석 UI */
+    .attend-week-row { display:flex; justify-content:space-between; gap:4px; margin-bottom:10px; }
+    .attend-week-day {
+        flex:1; height:32px; border-radius:8px; background:#f1f1f1;
+        display:flex; align-items:center; justify-content:center;
+        font-size:14px; color:#555;
+    }
+    .attend-week-day.completed { background:#ffe4f1; color:#d81b60; font-weight:bold; }
+    .attend-week-day.today { border:2px solid #ff80ab; }
+
+    .attend-month-grid {
+        display:grid; grid-template-columns: repeat(7, 1fr);
+        gap:4px; margin-top:10px; font-size:13px;
+    }
+    .attend-month-day {
+        height:26px; border-radius:6px; background:#f7f7f7;
+        display:flex; align-items:center; justify-content:center;
+        color:#444;
+    }
+    .attend-month-day.checked { background:#ffe4f1; color:#d81b60; font-weight:bold; }
+    .attend-month-day.today { border:2px solid #ff80ab; }
+
+    .blink-pink { animation: blinkPink 0.7s ease-out 0s 2; }
+    @keyframes blinkPink {
+        0% { background:#ffe4f1; transform:scale(1); }
+        50% { background:#ff9ac7; transform:scale(1.08); }
+        100% { background:#ffe4f1; transform:scale(1); }
+    }
+
+    /* 380×700 모바일에 딱 맞추기 - 주식창 */
+    #stock-ui {
+      position: absolute;
+      inset: 0;
+      padding: 6px;
+      background: #05070a;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #fff !important;
+    }
+
+    .stock-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px;
+    }
+
+    .stock-title {
+      font-size: 14px;
+    }
+
+    .stock-price-line {
+      font-size: 13px;
+    }
+
+    .stock-price {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .stock-rate {
+      font-size: 12px;
+    }
+
+    .stock-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .stock-tab-btn {
+      flex: 1;
+      padding: 4px;
+      font-size: 11px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #111;
+      color: #eee;
+    }
+
+    .stock-tab-btn.active {
+      background: #2a3b6a;
+      border-color: #6f9bff;
+    }
+
+    .stock-chart-wrap {
+      flex: 1;
+      min-height: 260px;
+      border-radius: 8px;
+      background:#101319;
+      border:1px solid #333;
+    }
+
+    #stock-chart {
+      width: 100%;
+      height: 100%;
+    }
+    /* ▼ 메인 화면 하단 정보 패널 */
+#bottom-info-panel{
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 360px;
+    padding: 8px 12px;
+    border-radius: 20px;
+
+    background: rgba(255, 240, 255, 0.20);
+    backdrop-filter: blur(90px);
+
+    box-shadow: 0 4px 16px rgba(80, 40, 120, 0.25);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.info-box {
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(200, 160, 255, 0.35);
+    border-radius: 12px;
+
+    padding: 10px 6px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;   /* 수직 중앙 정렬 */
+    align-items: center;       /* 수평 중앙 정렬 */
+
+    color: #231e1e;
+    font-size: 13px;
+    font-weight: 700;          /* Bold 적용 */
+
+    backdrop-filter: blur(6px);
+}
+
+.info-total {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(200, 160, 255, 0.35);
+    border-radius: 12px;
+    padding: 8px 6px;
+
+    text-align: center;
+    color: black;
+    font-size: 14px;        /* ↓ 기존 17px → 15px */
+    font-weight: 600;       /* ↓ 너무 두껍지 않게 */
+    line-height: 1.3;      /* ↓ 줄 간격 축소 */
+
+    backdrop-filter: blur(8px);
+}
+
+#stock-trade {
+    position: relative;
+    z-index: 9999;
+}
+/* 📌 주식창 닫기 버튼 (동그란 반투명 스타일) */
+.stock-close-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0);
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    backdrop-filter: blur(4px);
+
+    transition: 0.15s;
+}
+
+.stock-close-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.stock-close-btn:active {
+    transform: scale(0.9);
+}
+
+#saving-1-value, #saving-2-value {
+    white-space: pre-line;
+}
+.saving-label {
+    font-size: 15px;
+    font-weight: 700; 
+    color: #7cf27c;
+    text-align: center;
+    line-height: 1.2;
+}
+.saving-value {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+/* ===============================
+   🐾 펫 캐릭터 영역 (UI 절대 침범 안함)
+=============================== */
+#pet-container {
+    position: absolute;
+    left: 70%;
+    top:53%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 120px;
+    z-index: 10;
+}
+
+#pet {
+    width: 90px;
+    height: 90px;
+    background-image: url("/assets/pets/cat/animations/01.png");
+    background-size: auto 90px; /* 스프라이트 높이에 맞춤 */
+    background-repeat: no-repeat;
+
+    /* 첫 번째 프레임 위치 */
+    background-position: 0px 0px;
+}
+/* ===============================
+   🛒 방 스킨 상점 팝업
+=============================== */
+/* ===============================
+   🛒 방 스킨 상점 팝업 (popup-screen과 독립)
+=============================== */
+#room-shop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: none;          /* 기본 숨김 */
+    justify-content: center;
+    align-items: flex-start;
+
+    padding-top: 90px;
+
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+}
+
+/* 상단 제목 */
+#room-shop .popup-title {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    padding: 10px 20px;
+    background: rgba(108, 150, 98, 0.4);
+    border-radius: 12px;
+    font-size: 24px;
+    font-weight: 900;
+    color: white;
+    backdrop-filter: blur(6px);
+}
+
+/* 닫기 버튼 (상점 전용) */
+#room-shop .popup-back-btn {
+    position: absolute;
+    top: 25px;
+    right: 25px;
+
+    margin-top: 0 !important;   /* 전역 margin 무효화 */
+
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.25);
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+
+    display: flex;
+    justify-content:center;
+    align-items:center;
+
+    backdrop-filter: blur(4px);
+}
+
+/* 상점 내부 아이템 영역 */
+.shop-grid {
+    width: 90%;
+    max-height: 70%;
+    margin-top: 20px;
+    padding: 10px;
+
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+/* 개별 스킨 아이템 */
+.shop-item {
+    background: rgba(255,255,255,0.12);
+    padding: 10px;
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+    backdrop-filter: blur(6px);
+}
+
+.shop-item img {
+    width: 120px;
+    height: 120px;
+    image-rendering: pixelated;
+}
+
+.shop-item button {
+    margin-top: 8px;
+    width: 80%;
+    padding: 6px 0;
+    border: none;
+    border-radius: 8px;
+    background: #ffc533;
+    color: black;
+    font-weight: bold;
+}
+/* 메인 게임 배경에 스킨 적용 */
+#game-container {
+    background-repeat: no-repeat !important;
+    background-size: 290% auto;     /* 방 형태 유지 */
+    background-position: center -500px; 
+     background-color: #594e97;   /* ← 방 전체를 위로 80px 이동 */
+}
+
+.my-room-card {
+    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 14px;
+    text-align: center;
+    color: white;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.my-room-card img {
+    width: 140px;
+    height: 140px;
+    border-radius: 10px;
+    object-fit: cover;
+    image-rendering: pixelated;
+}
+
+.my-room-card button {
+    margin-top: 10px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #ffc533;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* 버튼 공통 애니메이션 */
+button {
+    transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+}
+
+button:active {
+    transform: scale(0.92) translateY(2px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3) inset;
+}
+
+/* 상점 아이템 버튼 */
+.shop-item button {
+    padding: 10px 0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: bold;
+    background: linear-gradient(180deg, #ffd86b, #ffb300);
+    color: #000;
+    transition: 0.15s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+
+.shop-item button:hover {
+    background: linear-gradient(180deg, #ffe091, #ffbc2f);
+    transform: translateY(-2px);
+}
+
+.shop-item button:active {
+    transform: scale(0.92);
+    background: linear-gradient(180deg, #e8b84f, #d89c1c);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3) inset;
+}
+
+/* 비활성화된 버튼 스타일 */
+.shop-item button:disabled {
+    background: #4caf50 !important;
+    color: white !important;
+    opacity: 1 !important;
+    cursor: default;
+    transform: none !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+/* ===============================
+   🏆 포디움 랭킹 팝업
+=============================== */
+.podium-wrapper {
+    width: 350px;
+    margin: auto;
+    text-align: center;
+    padding: 20px;
+}
+
+.podium-title {
+    font-size: 22px;
+    margin-bottom: 15px;
+    font-weight: 700;
+    color:yellow;
+}
+
+/* ---- 단상 영역 ---- */
+.podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+/* ---- 각 단계 박스 ---- */
+.podium-item {
+    width: 90px;
+    background: #e8f0ff;
+    border-radius: 15px;
+    padding-top: 10px;
+    position: relative;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+}
+
+.podium-item .name {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.podium-item .coin {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* ---- 발판 높이 차이 ---- */
+.podium-item.first { height: 150px; background:#ffe89b; }
+.podium-item.second { height: 120px; background:#cbe1ff; }
+.podium-item.third { height: 110px; background:#ffd6ec; }
+
+/* 발판 숫자 */
+.step {
+    position: absolute;
+    bottom: 6px;
+    width: 100%;
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 3px rgba(0,0,0,0.25);
+}
+
+/* ---- 4등 이후 리스트 ---- */
+.podium-list {
+    margin-top: 10px;
+    text-align: left;
+}
+
+.podium-list .item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: #f8f8f8;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+/* ===========================
+   📌 팝업별 글자 색상 설정
+   (popup-screen 전체에는 color 절대 넣지 말기!)
+=========================== */
+
+/* 채굴 팝업: 글자 밝게 보이도록 검정 */
+#mine-screen {
+    color: rgb(166, 255, 0);
+}
+
+/* 잭팟 팝업 */
+#jackpot-screen {
+    color: rgb(255, 238, 0);
+}
+
+/* 출석 팝업 */
+#attendance-screen {
+    color: rgb(255, 0, 128);
+}
+
+/* 설정 팝업 */
+#settings-screen {
+    color: rgb(119, 119, 119);
+}
+
+/* 적금 팝업 */
+#saving-screen,
+#saving-join-screen {
+    color: rgb(51, 255, 0);
+}
+
+/* 알림 팝업 */
+#notice-screen {
+    color: rgb(255, 0, 0);
+}
+
+/* 도움말 팝업 */
+#help-screen {
+    color: rgb(255, 255, 255);
+}
+
+/* 방 스킨 상점은 이미 자체 구조라 글자색 제외 가능 */
+
+/* 📌 포디움 랭킹 팝업 (특수: 제목은 노란색, 내부는 검정/흰색 조합) */
+#podium-ranking {
+    color: rgb(255, 208, 0);
+}
+
+/* 기존 랭킹 팝업 (리스트 형태) */
+#rank-screen {
+    color: black;
+}
+</style>
+
+</head>
+<body>
+<!-- 로그인 -->
+<div id="login-screen">
+    <div id="login-box">
+        <div style="font-size:38px; margin-bottom:10px;">🔐</div>
+        <h2 style="margin:0 0 10px 0; font-size:24px;">로그인</h2>
+        <p style="margin:0 0 15px 0; font-size:15px; color:#444;">디스코드 ID를 입력하세요</p>
+        <input id="login-id" type="text" placeholder="예: 270546023246462976" style= "width: 260px;">
+        <button onclick="login()">로그인</button>
+    </div>
+</div>
+<!-- 메인 화면 -->
+<div id="game-container" style="display:none;">
+    <div id="top-bar"style="top: 30px;">
+        <span id="top-username">???</span>
+        <span id="top-balance">💰 0</span>
+    </div>
+     <!-- ▼▼ 메인 화면 하단 정보 패널 ▼▼ -->
+<div id="bottom-info-panel">
+
+    <div class="info-grid">
+        <div class="info-box" id="info-stock-sell">
+            매도<br>
+            <span id="stock-sell-value">0</span>
+        </div>
+
+        <div class="info-box" id="info-saving-1">
+            <span id="saving-1-value">0</span>
+        </div>
+
+        <div class="info-box" id="info-stock-buy">
+            매수<br>
+            <span id="stock-buy-value">0</span>
+        </div>
+
+        <div class="info-box" id="info-saving-2">
+            <span id="saving-2-value">0</span>
+        </div>
+    </div>
+
+    <div class="info-total" id="info-total">
+        총합: <span id="total-value">0</span>
+    </div>
+</div>
+<!-- ▲▲ END Panel ▲▲ -->
+<!-- 🐾 펫 표시 영역 (기존 UI 절대 수정 안 함) -->
+<div id="pet-container">
+    <div id="pet"></div>
+</div>
+    <div id="character"></div>
+
+    <div class="left-menu">
+        <div class="menu-btn" onclick="openRank()">🏆</div>
+        <div class="menu-btn" onclick="openStock()">📈</div>
+        <div class="menu-btn" onclick="openSavings()">💰</div>
+        <div class="menu-btn" onclick="openSettings()">⚙️</div>
+        <div class="menu-btn" onclick="openHelp()">❓</div>
+    </div>
+
+    <div class="right-menu">
+        <div class="menu-btn" onclick="openJackpot()">🎰</div>
+        <div class="menu-btn" onclick="openMine()">⛏️</div>
+        <div class="menu-btn" onclick="openAttendance()">🎟️</div>
+        <div class="menu-btn" onclick="openNotice()">🔔</div>
+        <div class="menu-btn" onclick="openRoomShop()">🛒</div>
+        <div class="menu-btn" onclick="openMyRooms()">🏠</div>
+    </div>
+</div>
+
+<!-- 📈 주식창 -->
+<div id="stock-ui" style="display:none;">
+  <div class="stock-top-bar">
+    <div class="stock-left">
+      <div id="stock-title" class="stock-title">샘성테크 (SMSG)</div>
+      <div class="stock-price-line">
+        <span id="stock-price" class="stock-price">0</span>
+        <span id="stock-rate" class="stock-rate">(0.00%)</span>
+      </div>
+      <div class="stock-sub">
+        <span id="stock-sector">IT</span> |
+        고가 <span id="stock-high">0</span> /
+        저가 <span id="stock-low">0</span> /
+        거래량 <span id="stock-volume">0</span>
+      </div>
+    </div>
+    <div class="stock-right">
+      <button class="stock-close-btn" onclick="closeStock()">↩</button>
+    </div>
+  </div>
+
+  <!-- 종목 선택 버튼 -->
+  <div class="stock-tabs" id="stock-tabs"></div>
+
+  <!-- ⭐⭐⭐ MA 온/오프 버튼 ⭐⭐⭐ -->
+  <div id="ma-toggle"
+       style="display:flex; gap:6px; margin:6px; justify-content:center;">
+    <button onclick="toggleMA('ma5')" 
+            style="padding:5px 10px; border-radius:6px; border:none; background:#222; color:white;">
+        MA5
+    </button>
+    <button onclick="toggleMA('ma20')" 
+            style="padding:5px 10px; border-radius:6px; border:none; background:#222; color:white;">
+        MA20
+    </button>
+    <button onclick="toggleMA('ma60')" 
+            style="padding:5px 10px; border-radius:6px; border:none; background:#222; color:white;">
+        MA60
+    </button>
+    <button onclick="toggleMA('ma120')" 
+            style="padding:5px 10px; border-radius:6px; border:none; background:#222; color:white;">
+        MA120
+    </button>
+  </div>
+  <!-- ⭐⭐⭐ END ⭐⭐⭐ -->
+
+  <!-- 차트 영역 -->
+  <div class="stock-chart-wrap">
+    <canvas id="stock-chart"></canvas>
+  </div>
+</div>
+
+<!-- 📈 거래 버튼 -->
+<div id="stock-trade" style="
+  margin-top:8px; 
+  background:#111; 
+  padding:10px; 
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+">
+  <button onclick="openBuy()" style="
+    flex:1;
+    padding:10px;
+    background:#2ecc71;
+    border:none;
+    color:white;
+    font-size:14px;
+    border-radius:8px;
+  ">매수</button>
+
+  <button onclick="openSell()" style="
+    flex:1;
+    padding:10px;
+    background:#e74c3c;
+    border:none;
+    color:white;
+    font-size:14px;
+    border-radius:8px;
+  ">매도</button>
+</div>
+<!-- 매수/매도 팝업 -->
+<div id="trade-screen" class="popup-screen">
+  <h2 id="trade-title">매수</h2>
+
+  <div class="popup-card" style="text-align:center;">
+      <div style="font-size:15px; margin-bottom:6px;">
+        가격: <span id="trade-price"></span>
+      </div>
+
+      <!-- ⭐ 잔액 표시 -->
+      <div id="trade-balance"
+           style="margin-bottom:4px; font-size:14px; font-weight:600; color:black;">
+      </div>
+
+      <!-- ⭐ 최대 매수 가능 수량 표시 (새로 추가됨) -->
+      <div id="trade-max"
+           style="margin-bottom:8px; font-size:14px; font-weight:600; color:black;">
+      </div>
+
+      <input id="trade-amount"
+       type="text"
+       placeholder="수량 입력"
+       style="width:260px; padding:8px; margin-bottom:10px;">
+
+      <button onclick="submitTrade()" style="
+        width:100%; padding:12px; margin-top:12px;
+        background:#3498db; color:white; border:none;
+        border-radius:8px; font-size:16px;">확인</button>
+
+      <div id="trade-error" style="color:red; margin-top:8px;"></div>
+  </div>
+
+  <button onclick="closeTrade()" class="popup-back-btn">↩</button>
+</div>
+
+<!-- 출석 팝업 -->
+<div id="attendance-screen" class="popup-screen">
+    <h2>🎟️ 출석</h2>
+    <div class="popup-card">
+        <div style="font-size:14px;">이번 주 출석</div>
+        <div id="attendance-week" class="attend-week-row"></div>
+
+        <div id="attendance-week-bonus"
+            style="color:#d81b60; font-size:13px; margin-top:4px;">
+        </div>
+
+        <div style="margin-top:10px; font-size:14px;">
+            <span id="attendance-month-title"></span>
+        </div>
+
+        <div id="attendance-month-grid" class="attend-month-grid"></div>
+
+        <div id="attendance-info" style="margin-top:10px; font-size:14px;">
+            출석을 진행하세요.
+        </div>
+
+        <button id="attend-btn"
+            onclick="doAttendance()"
+            style="width:100%; padding:12px; margin-top:12px;
+            background:#4caf50; border:none; border-radius:10px; color:#fff;">
+            출석하기 🎟️
+        </button>
+    </div>
+
+    <button onclick="closeAttendance()" class="popup-back-btn">↩</button>
+</div>
+
+<!-- 잭팟 팝업 -->
+<div id="jackpot-screen" class="popup-screen">
+    <h2>🎰 잭팟</h2>
+
+    <div id="jackpot-balance"
+         style="font-size:20px; margin-bottom:10px; font-weight:bold;">💰 0</div>
+
+    <div id="slot-box"
+         style="width:260px; margin:15px auto; background:#fff; color:#000;
+         border-radius:15px; padding:20px; font-size:40px;
+         display:flex; justify-content:space-around;">
+        <div id="slot1">❔</div>
+        <div id="slot2">❔</div>
+        <div id="slot3">❔</div>
+    </div>
+
+    <div style="margin-top:10px; display:flex; justify-content:center; gap:8px;">
+        <span>단위:</span>
+        <button class="unit-btn" onclick="setUnit('A')">A</button>
+        <button class="unit-btn" onclick="setUnit('B')">B</button>
+        <button class="unit-btn" onclick="setUnit('C')">C</button>
+        <button class="unit-btn" onclick="setUnit('D')">D</button>
+        <button class="unit-btn" onclick="setUnit('')">기본</button>
+    </div>
+
+    <div style="margin-top:20px; display:flex; justify-content:center; gap:10px;">
+        <input id="bet" type="text" placeholder="베팅 금액"
+            style="width:160px; padding:12px; font-size:18px; border-radius:10px; border:none; text-align:center;">
+
+        <button onclick="startSpin(1)"
+            style="padding:12px 15px; font-size:18px; border:none; border-radius:10px; background:gold;">
+            SPIN 🎰
+        </button>
+    </div>
+
+    <div style="margin-top:15px;">
+        <button id="btn-30" class="count-btn" onclick="startSpin(30, this)">30회</button>
+    </div>
+
+    <button onclick="closeJackpot()" class="popup-back-btn">↩</button>
+</div>
+
+<!-- 랭킹 팝업 -->
+<div id="rank-screen" class="popup-screen">
+    <h2>🏆 칩 랭킹</h2>
+    <div class="popup-card">
+        <div id="rank-list">로딩 중...</div>
+    </div>
+    <button onclick="closeRank()" class="popup-back-btn">↩</button>
+</div>
+<!-- 🏆 포디움 랭킹 팝업 -->
+<div id="podium-ranking" class="popup-screen" style="display:none;">
+    <div class="podium-wrapper">
+        <div class="podium-title">🏆 칩 랭킹</div>
+
+        <!-- 1~3등 단상 -->
+        <div class="podium">
+            <div class="podium-item second">
+                <div class="name">-</div>
+                <div class="coin">-</div>
+            </div>
+
+            <div class="podium-item first">
+                <div class="name">-</div>
+                <div class="coin">-</div>
+            </div>
+
+            <div class="podium-item third">
+                <div class="name">-</div>
+                <div class="coin">-</div>
+            </div>
+        </div>
+
+        <!-- 4등 이하 -->
+        <div id="podium-list" class="podium-list"></div>
+
+        <!-- 닫기 버튼 -->
+        <button class="popup-back-btn" onclick="closePodium()">↩</button>
+    </div>
+</div>
+
+<!-- 설정 팝업 -->
+<div id="settings-screen" class="popup-screen">
+    <h2>⚙️ 설정</h2>
+    <div class="popup-card">
+        <h3>👤 닉네임 변경</h3>
+        <input id="nickname-input" type="text" maxlength="16" placeholder="새 닉네임"
+            style="width: 280px;padding:8px;">
+
+        <button onclick="saveNickname()"
+            style="margin-top:10px; padding:10px; width:100%;
+            border:none; border-radius:8px; background:#4caf50; color:#fff;">
+            저장
+        </button>
+    </div>
+
+    <button onclick="closeSettings()" class="popup-back-btn">↩</button>
+</div>
+
+<!-- 내가 가진 방 팝업 -->
+<div id="my-rooms" class="popup-screen">
+    <h2>🏠</h2>
+    <div class="popup-card" id="my-room-list"></div>
+    <button onclick="closePopup('my-rooms')" class="popup-back-btn">↩</button>
+</div>
+
+<!-- 채굴 팝업 -->
+<div id="mine-screen" class="popup-screen">
+    <h2>⛏️ 채굴</h2>
+
+    <div class="popup-card" style="text-align:center;">
+        <div id="mine-count" style="font-size:16px; margin-bottom:10px;">
+            오늘 채굴 가능 횟수: ?
+        </div>
+
+        <div style="font-size:80px; margin:10px;">
+            <span id="mine-pickaxe">⛏️</span>
+        </div>
+
+        <div id="mine-result"
+             style="font-size:20px; margin-top:10px; min-height:40px;">
+        </div>
+
+        <button id="mine-btn"
+            onclick="doMine()"
+            style="width:100%; padding:12px; margin-top:12px;
+            background:#4caf50; border:none; border-radius:10px; color:#fff;
+            font-size:18px; cursor:pointer;">
+            채굴하기 ⛏️
+        </button>
+    </div>
+
+    <button onclick="closePopup('mine-screen')" class="popup-back-btn">↩</button>
+</div>
+
+<!-- 알림 팝업 -->
+<div id="notice-screen" class="popup-screen">
+    <h2>🔔 알림</h2>
+    <div class="popup-card">추후 업데이트</div>
+    <button onclick="closeNotice()" class="popup-back-btn">↩</button>
+</div>
+
+<!-- 도움말 팝업 -->
+<div id="help-screen" class="popup-screen">
+    <h2>❓ 도움말</h2>
+
+    <div class="popup-card">
+        <p style="font-size:15px; line-height:1.5;">
+            도움말은 추후 업데이트될 예정입니다!<br>
+            궁금한 점이 있으시더라도! 오지 말아주세요. 😊
+        </p>
+    </div>
+
+    <button onclick="closePopup('help-screen')" class="popup-back-btn">↩</button>
+</div>
+
+<!-- 🛒 방 스킨 상점 팝업 -->
+<div id="room-shop" style="display:none;">
+    <div class="popup-title">🏠 방 스킨 상점</div>
+
+    <div id="room-shop-items" class="shop-grid">
+        <!-- JS에서 자동 생성 -->
+    </div>
+
+    <button class="popup-back-btn" onclick="closePopup('room-shop')">↩</button>
+</div>
+
+<!-- ⭐⭐⭐ 저축(적금) 팝업 ⭐⭐⭐ -->
+<div id="saving-screen" class="popup-screen">
+    <h2>💰 저축 / 적금</h2>
+
+    <div class="popup-card" style="text-align:center;">
+
+        <div id="saving-balance"
+             style="margin-bottom:12px; font-size:17px; font-weight:bold; color:#444;"></div>
+
+        <div id="saving-active-list"
+             style="font-size:14px; text-align:left; margin-bottom:15px;">
+            로딩중...
+        </div>
+
+        <h3 style="font-size:16px; margin-top:10px;">📦 상품 선택</h3>
+
+        <button onclick="openSavingJoin('soso')"
+            style="width:100%; padding:10px; margin-top:8px; border:none;
+            background:#ffd54f; border-radius:8px; cursor:pointer; font-size:16px;">
+            📦 소소하게 벌자
+        </button>
+
+        <button onclick="openSavingJoin('hanbang')"
+            style="width:100%; padding:10px; margin-top:8px; border:none;
+            background:#ff8a80; border-radius:8px; cursor:pointer; font-size:16px;">
+            💥 역시 인생은 한방
+        </button>
+
+    </div>
+
+    <button onclick="closeSavings()" class="popup-back-btn">↩</button>
+</div>
+
+<!-- ⭐⭐⭐ 적금 가입 화면 ⭐⭐⭐ -->
+<div id="saving-join-screen" class="popup-screen">
+    <h2>💰 적금 가입</h2>
+    <div class="popup-card" style="text-align:center;">
+
+        <div id="saving-join-desc"
+             style="font-size:14px; margin-bottom:10px;"></div>
+
+        <input id="saving-amount" type="text"
+            placeholder="적금 금액 입력"
+            style="width: 276px;padding:10px;border-radius:8px;border:1px solid #888;text-align:center;font-size:18px;">
+
+        <button onclick="submitSavingJoin()"
+            style="width:100%; margin-top:12px; padding:12px;
+            background:#4caf50; color:white; border:none; border-radius:10px;
+            font-size:18px; cursor:pointer;">
+            가입하기
+        </button>
+
+        <div id="saving-join-error" style="color:red; margin-top:8px;"></div>
+
+    </div>
+
+    <button onclick="closeSavingJoin()" class="popup-back-btn">↩</button>
+</div>
+<script>
+let USER_ID = null;
+let USER_NAME = null;
+let selectedUnit = "";
+let savingJoinProduct = null;
+let TRADE_MODE = null; // "BUY" or "SELL"
+
+/* ===============================
+    공통 팝업
+=============================== */
+function openPopup(id) { document.getElementById(id).style.display = "block"; hidePet(); }
+function closePopup(id) { document.getElementById(id).style.display = "none"; showPet(); }
+
+/* ===============================
+    로그인
+=============================== */
+async function login() {
+    const id = document.getElementById("login-id").value.trim();
+    if (!id) return alert("디스코드 ID를 입력하세요.");
+
+    const r = await fetch("/api/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ discordId: id })
+    });
+
+    const data = await r.json();
+
+    if (data.error) return alert("로그인 실패: " + data.error);
+
+    // 🔥 로그인 성공 → 이제 USER_ID 설정해야 함
+    USER_ID = id;
+    USER_NAME = data.name;
+
+    // 🔥 방 스킨 및 소유 스킨 정보 불러오기
+    await loadRoomData();  // ← 여기로 이동해야 정상!
+
+    // UI 표시
+    document.getElementById("top-username").textContent = USER_NAME;
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("game-container").style.display = "block";
+
+    refreshBalance();
+}
+/* ===============================
+    잔액 갱신
+=============================== */
+async function refreshBalance() {
+    if (!USER_ID) return;
+
+    const r = await fetch(`/api/balance?id=${USER_ID}`);
+    const data = await r.json();
+
+    const el = document.getElementById("top-balance");
+    el.textContent = "💰 " + data.formatted;
+
+    el.classList.remove("balance-bump");
+    void el.offsetWidth;
+    el.classList.add("balance-bump");
+}
+
+/* ===============================
+    적금 팝업 열기
+=============================== */
+async function openSavings() {
+    if (!USER_ID) return;
+
+    const r = await fetch(`/api/saving/info?id=${USER_ID}`);
+    const data = await r.json();
+
+    document.getElementById("saving-balance").textContent =
+        `현재 잔액: 💰 ${data.formatted}`;
+
+    let html = "";
+
+    if (data.active.length === 0) {
+        html = `<div style="color:#777;">진행 중인 적금이 없습니다.</div>`;
+    } else {
+        html += `<div style="font-size:15px; font-weight:bold;">📌 진행중인 적금</div>`;
+        data.active.forEach(s => {
+            html += `
+                <div style="margin-top:8px; border-bottom:1px solid #ddd; padding-bottom:6px;">
+                    <b>${s.product === "soso" ? "📦 소소하게" : "💥 한방"}</b><br>
+                    원금: ${formatToUnit(s.amount)}<br>
+                    이율/배수: ${s.rate}${s.product === "soso" ? "%" : "배"}<br>
+                    세금: ${s.tax}%<br>
+                    남은 일수: ${s.remainDays}일
+                </div>
+            `;
+        });
+    }
+
+    document.getElementById("saving-active-list").innerHTML = html;
+
+    openPopup("saving-screen");
+}
+
+function closeSavings() { closePopup("saving-screen"); }
+
+/* ===============================
+    적금 가입 화면 열기
+=============================== */
+function openSavingJoin(type) {
+    savingJoinProduct = type;
+
+    if (type === "soso") {
+        document.getElementById("saving-join-desc").innerHTML = `
+            <b>📦 소소하게 벌자</b><br>
+            기간: 1~10일<br>
+            이율: 10~50%<br>
+            세금: 없음
+        `;
+    } else {
+        document.getElementById("saving-join-desc").innerHTML = `
+            <b>💥 역시 인생은 한방</b><br>
+            기간: 1~100일<br>
+            이율: 0~100배<br>
+            세금: 0~50%
+        `;
+    }
+
+    document.getElementById("saving-join-error").textContent = "";
+    document.getElementById("saving-amount").value = "";
+
+    openPopup("saving-join-screen");
+}
+
+function closeSavingJoin() { closePopup("saving-join-screen"); }
+
+/* ===============================
+    적금 가입 API
+=============================== */
+async function submitSavingJoin() {
+    const raw = document.getElementById("saving-amount").value.trim();
+    const amount = parseAmount(raw);   // 단위 변환
+    const errBox = document.getElementById("saving-join-error"); // ← 반드시 있어야 함
+
+    errBox.textContent = "";
+
+    if (!amount || amount <= 0) {
+        errBox.textContent = "금액을 올바르게 입력하세요.";
+        return;
+    }
+
+    const r = await fetch("/api/saving/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            id: USER_ID,
+            product: savingJoinProduct,
+            amount: amount
+        })
+    });
+
+    const data = await r.json();
+
+    if (data.error) {
+        errBox.textContent = data.error;
+        return;
+    }
+
+    closeSavingJoin();
+    openSavings();
+    refreshBalance();
+}
+
+/* ===============================
+    출석
+=============================== */
+function openAttendance() {
+    fetchAttendanceInfo();
+    openPopup("attendance-screen");
+}
+
+function closeAttendance() {
+    closePopup("attendance-screen");
+}
+
+function loadAttendanceView(att = null) {
+    const weekRow = document.getElementById("attendance-week");
+    const monthGrid = document.getElementById("attendance-month-grid");
+    const info = document.getElementById("attendance-info");
+    const btn = document.getElementById("attend-btn");
+
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth() + 1;
+    const d = today.getDate();
+
+    document.getElementById("attendance-month-title").textContent =
+        `${y}년 ${m}월 출석`;
+
+    weekRow.innerHTML = "";
+    const streak = att?.streak || 0;
+    const weekIndex = att?.weekIndex || 0;
+    const just = att?.justCheckedToday;
+
+    for (let i = 1; i <= 7; i++) {
+        const div = document.createElement("div");
+        div.className = "attend-week-day";
+        div.textContent = i;
+
+        if (streak && i <= (streak % 7 || 7)) div.classList.add("completed");
+
+        if (i === weekIndex) {
+            div.classList.add(just ? "blink-pink" : "today");
+        }
+        weekRow.appendChild(div);
+    }
+
+    monthGrid.innerHTML = "";
+    const firstDay = new Date(y, m - 1, 1).getDay();
+    const lastDate = new Date(y, m, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) monthGrid.appendChild(document.createElement("div"));
+
+    const attended = att?.attendedDays || [];
+
+    for (let day = 1; day <= lastDate; day++) {
+        const div = document.createElement("div");
+        div.className = "attend-month-day";
+        div.textContent = day;
+
+        if (attended.includes(day)) div.classList.add("checked");
+        if (day === d) div.classList.add(just ? "blink-pink" : "today");
+
+        monthGrid.appendChild(div);
+    }
+
+    if (att?.error || att?.alreadyToday) {
+        info.innerHTML = `<span style="color:red;">이미 오늘 출석했습니다</span>`;
+        btn.style.display = "none";
+    } else if (att) {
+        info.innerHTML =
+            `🎉 ${att.streak}일차 출석 완료!<br>` +
+            `기본보상 +${att.reward.toLocaleString()} 🪙` +
+            (att.weeklyBonus ? `<br>🎁 주간보상 +${att.weeklyBonus}` : "") +
+            (att.monthlyBonus ? `<br>🌕 월간보상 +${att.monthlyBonus}` : "");
+
+        btn.style.display = "none";
+    } else {
+        btn.style.display = "block";
+        btn.disabled = false;
+    }
+}
+
+async function fetchAttendanceInfo() {
+    const r = await fetch(`/api/attendance/info?id=${USER_ID}`);
+    const data = await r.json();
+
+    loadAttendanceView({
+        streak: data.streak,
+        weekIndex: data.weekIndex,
+        attendedDays: data.attendedDays,
+        justCheckedToday: data.alreadyToday,
+        alreadyToday: data.alreadyToday
+    });
+}
+
+async function doAttendance() {
+    const r = await fetch("/api/attendance", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ id: USER_ID })
+    });
+
+    const data = await r.json();
+    if (data.error) return fetchAttendanceInfo();
+
+    loadAttendanceView({
+        streak: data.streak,
+        reward: data.reward,
+        weeklyBonus: data.weeklyBonus,
+        monthlyBonus: data.monthlyBonus,
+        weekIndex: data.weekIndex,
+        attendedDays: data.attendedDays,
+        justCheckedToday: true
+    });
+
+    refreshBalance();
+}
+
+/* ===============================
+    채굴
+=============================== */
+async function openMine() {
+    hidePet();
+    if (!USER_ID) {
+        alert("로그인 후 이용해주세요.");
+        return;
+    }
+
+    const r = await fetch(`/api/mine/info?id=${USER_ID}`);
+    const data = await r.json();
+
+    if (data.error) {
+        alert("채굴 정보를 불러올 수 없습니다. 다시 로그인해주세요.");
+        return;
+    }
+
+    document.getElementById("mine-count").textContent =
+        `오늘 채굴 가능 횟수: ${data.left}회`;
+
+    document.getElementById("mine-result").textContent = "";
+
+    openPopup("mine-screen");
+}
+
+async function doMine() {
+    if (!USER_ID) {
+        alert("로그인 후 이용해주세요.");
+        return;
+    }
+
+    const btn = document.getElementById("mine-btn");
+    const pick = document.getElementById("mine-pickaxe");
+    const resultBox = document.getElementById("mine-result");
+
+    btn.disabled = true;
+    pick.classList.remove("pickaxe-anim");
+    void pick.offsetWidth;
+    pick.classList.add("pickaxe-anim");
+
+    await new Promise(r => setTimeout(r, 600));
+
+    const r = await fetch("/api/mine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: USER_ID })
+    });
+
+    const data = await r.json();
+
+    if (data.error === "로그인 필요") {
+        alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+        btn.disabled = false;
+        return;
+    }
+
+    if (data.error === "LIMIT") {
+        resultBox.textContent = "⛏️ 오늘 채굴은 모두 사용했습니다.";
+        resultBox.style.color = "red";
+        btn.disabled = false;
+        return;
+    }
+
+    resultBox.style.color = "#d81b60";
+    resultBox.innerHTML = `⛏️ 채굴 성공!<br>+${data.reward} A`;
+
+    refreshBalance();
+
+    document.getElementById("mine-count").textContent =
+        `오늘 채굴 가능 횟수: ${data.left}회`;
+
+    btn.disabled = false;
+}
+
+/* ===============================
+    잭팟
+=============================== */
+function openJackpot() {
+    updateJackpotBalance();
+    openPopup("jackpot-screen");
+}
+
+function closeJackpot() { closePopup("jackpot-screen"); }
+
+function setUnit(u) {
+    selectedUnit = u;
+    document.getElementById("bet").placeholder = u
+        ? `베팅 금액 (${u})` : "베팅 금액";
+}
+
+async function updateJackpotBalance() {
+    const r = await fetch(`/api/balance?id=${USER_ID}`);
+    const data = await r.json();
+    document.getElementById("jackpot-balance").textContent = "💰 " + data.formatted;
+}
+
+// function parseAmount(text) {
+//     text = text.trim().toUpperCase();
+//     if (!isNaN(Number(text))) return Number(text);
+
+//     const m = text.match(/^([0-9\.]+)\s*([A-Z])(\'*)$/);
+//     if (!m) return NaN;
+
+//     let num = parseFloat(m[1]);
+//     let unit = m[2];
+//     let tier = m[3].length;
+//     let base = unit.charCodeAt(0) - 65;
+//     let exp = (base + 1) + tier * 26;
+
+//     return num * (1000 ** exp);
+// }
+
+async function spinJackpot() {
+    const betInput = document.getElementById("bet");
+    let raw = betInput.value;
+    if (selectedUnit) raw += selectedUnit;
+
+    const bet = parseAmount(raw);
+    if (!bet || bet <= 0) return true;
+
+    document.getElementById("slot1").textContent = "🎲";
+    document.getElementById("slot2").textContent = "🎲";
+    document.getElementById("slot3").textContent = "🎲";
+
+    const r = await fetch("/api/jackpot", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ id: USER_ID, bet })
+    });
+
+    const data = await r.json();
+
+    if (data.error) return true;
+
+    document.getElementById("slot1").textContent = data.result[0];
+    document.getElementById("slot2").textContent = data.result[1];
+    document.getElementById("slot3").textContent = data.result[2];
+
+    refreshBalance();
+    updateJackpotBalance();
+
+    return false;
+}
+
+async function startSpin(count) {
+    for (let i = 0; i < count; i++) {
+        const stop = await spinJackpot();
+        if (stop) break;
+        await new Promise(r => setTimeout(r, 30));
+    }
+}
+
+/* ===============================
+    랭킹
+=============================== */
+async function openRank() {
+    const res = await fetch("/api/rank");
+    const data = await res.json();
+
+    // data.ranking 그대로 사용
+    const ranking = data.ranking.map(u => ({
+        id: u.id,
+        name: u.name,
+        total: u.balance
+    }));
+
+    renderPodiumRanking(ranking);
+
+    document.getElementById("podium-ranking").style.display = "block";
+    hidePet();
+}
+
+function closeRank() { closePopup("rank-screen"); }
+/* ===============================
+    설정
+=============================== */
+function openSettings() {
+    document.getElementById("nickname-input").value = USER_NAME;
+    openPopup("settings-screen");
+}
+
+async function saveNickname() {
+    const name = document.getElementById("nickname-input").value.trim();
+    if (!name) return;
+
+    await fetch("/api/setname", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ id: USER_ID, name })
+    });
+
+    USER_NAME = name;
+    document.getElementById("top-username").textContent = name;
+
+    closeSettings();
+}
+
+function closeSettings() { closePopup("settings-screen"); }
+
+/* ===============================
+    기타 메뉴
+=============================== */
+function openHelp() { openPopup('help-screen'); }
+function openNotice() { openPopup("notice-screen"); }
+function closeNotice() { closePopup("notice-screen"); }
+
+/* ===============================
+   📈 주식 시스템 – 종목 정의
+=============================== */
+const STOCK_DEFS = {
+    SMSG: { code:"SMSG", name:"샘성테크", sector:"IT", basePrice:72000, volatility:0.9,  trend:0.01  },
+    LGBM: { code:"LGBM", name:"엘지배터리", sector:"배터리", basePrice:52000, volatility:1.2,  trend:0.015 },
+    DGPH: { code:"DGPH", name:"동강제약",   sector:"제약",   basePrice:31000, volatility:1.4,  trend:-0.005 },
+    HYDM: { code:"HYDM", name:"현다모터스", sector:"자동차", basePrice:65000, volatility:0.7,  trend:0.008 }
+};
+
+const marketState = {};
+let selectedSymbol = "SMSG";
+
+const TICK_MS = 900;
+const CANDLE_TICKS = 5;
+const MAX_CANDLES = 60;
+
+let stockChartCanvas = null;
+let stockChartCtx = null;
+
+/* ===============================
+   📌 시세 초기화
+=============================== */
+function initMarket() {
+    Object.values(STOCK_DEFS).forEach(def => {
+        const start = def.basePrice * (0.95 + Math.random() * 0.1);
+
+        marketState[def.code] = {
+            code: def.code,
+            name: def.name,
+            sector: def.sector,
+            price: start,
+            openToday: start,
+            highToday: start,
+            lowToday: start,
+            volumeToday: 0,
+            candles: [],
+            currentCandle: {
+                open: start,
+                high: start,
+                low:  start,
+                close: start,
+                volume: 0
+            },
+            tickInCandle: 0
+        };
+    });
+}
+
+/* ===============================
+   📈 시세 갱신 (추세 + 변동성)
+=============================== */
+function tickMarket() {
+    Object.values(STOCK_DEFS).forEach(def => {
+        const st = marketState[def.code];
+        const before = st.price;
+
+        const rnd = (Math.random() * 2 - 1);
+        const changeRate = def.trend * 0.01 + rnd * def.volatility * 0.005;
+
+        let next = before * (1 + changeRate);
+        if (next < def.basePrice * 0.3) next = def.basePrice * 0.3;
+        if (next > def.basePrice * 3.0) next = def.basePrice * 3.0;
+
+        st.price = next;
+        st.highToday = Math.max(st.highToday, next);
+        st.lowToday  = Math.min(st.lowToday, next);
+
+        const vol = Math.floor(Math.abs(changeRate) * 3000 + Math.random() * 200);
+        st.volumeToday += vol;
+
+        const c = st.currentCandle;
+        c.high   = Math.max(c.high, next);
+        c.low    = Math.min(c.low, next);
+        c.close  = next;
+        c.volume += vol;
+
+        st.tickInCandle++;
+
+        if (st.tickInCandle >= CANDLE_TICKS) {
+            st.candles.push({ ...st.currentCandle });
+
+            if (st.candles.length > MAX_CANDLES) st.candles.shift();
+
+            st.currentCandle = {
+                open: next,
+                high: next,
+                low:  next,
+                close: next,
+                volume: 0
+            };
+            st.tickInCandle = 0;
+        }
+    });
+
+    const stockUI = document.getElementById("stock-ui");
+    if (stockUI && stockUI.style.display !== "none") {
+        updateStockUI();
+        drawCandles();
+    }
+}
+
+/* ===============================
+   📌 openStock() – UI 열기
+=============================== */
+function openStock() {
+    hidePet();
+    const ui = document.getElementById("stock-ui");
+    ui.style.display = "flex";
+
+    if (!stockChartCanvas) {
+        stockChartCanvas = document.getElementById("stock-chart");
+        stockChartCtx = stockChartCanvas.getContext("2d");
+
+        const resize = () => {
+            stockChartCanvas.width = stockChartCanvas.clientWidth;
+            stockChartCanvas.height = stockChartCanvas.clientHeight;
+            drawCandles();
+        };
+        resize();
+        window.addEventListener("resize", resize);
+    }
+
+    buildStockTabs();
+    updateStockUI();
+    drawCandles();
+}
+
+/* ===============================
+   📌 종목 탭 생성
+=============================== */
+function buildStockTabs() {
+    const wrap = document.getElementById("stock-tabs");
+    wrap.innerHTML = "";
+
+    Object.values(STOCK_DEFS).forEach(def => {
+        const btn = document.createElement("button");
+        btn.className = "stock-tab-btn" + (def.code === selectedSymbol ? " active" : "");
+        btn.textContent = `${def.name} (${def.code})`;
+        btn.onclick = () => {
+            selectedSymbol = def.code;
+            buildStockTabs();
+            updateStockUI();
+            drawCandles();
+        };
+        wrap.appendChild(btn);
+    });
+}
+
+/* ===============================
+   📌 주식 정보 UI 업데이트
+=============================== */
+function updateStockUI() {
+    const st = marketState[selectedSymbol];
+    const def = STOCK_DEFS[selectedSymbol];
+    if (!st) return;
+
+    const rate = ((st.price - def.basePrice) / def.basePrice) * 100;
+
+    document.getElementById("stock-title").textContent =
+        `${st.name} (${st.code})`;
+
+    document.getElementById("stock-price").textContent =
+        st.price.toFixed(2);
+
+    const rateEl = document.getElementById("stock-rate");
+    rateEl.textContent = `(${rate >= 0 ? "+" : ""}${rate.toFixed(2)}%)`;
+    rateEl.style.color = rate >= 0 ? "#ff4444" : "#44aaff";
+
+    document.getElementById("stock-sector").textContent = st.sector;
+    document.getElementById("stock-high").textContent = st.highToday.toFixed(2);
+    document.getElementById("stock-low").textContent = st.lowToday.toFixed(2);
+    document.getElementById("stock-volume").textContent =
+        st.volumeToday.toLocaleString();
+}
+
+/* ===============================
+   📈 캔들 차트 그리기 + 이동평균선 추가
+=============================== */
+function drawCandles() {
+    if (!stockChartCtx || !stockChartCanvas) return;
+
+    const st = marketState[selectedSymbol];
+    if (!st) return;
+
+    const ctx = stockChartCtx;
+    const w = stockChartCanvas.width;
+    const h = stockChartCanvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const candles = [...st.candles, st.currentCandle];
+    if (candles.length === 0) return;
+
+    // === 가격 범위 계산 ===
+    let minP = Infinity;
+    let maxP = -Infinity;
+
+    candles.forEach(c => {
+        minP = Math.min(minP, c.low);
+        maxP = Math.max(maxP, c.high);
+    });
+
+    if (minP === maxP) {
+        minP *= 0.95;
+        maxP *= 1.05;
+    }
+
+    // === 보조선 ===
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1;
+
+    const rows = 4;
+    for (let i = 1; i < rows; i++) {
+        const y = (h / rows) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+    }
+
+    // === 캔들 크기 ===
+    const count = candles.length;
+    const candleWidth = Math.max(4, (w / count) * 0.6);
+    const gap = (w - candleWidth * count) / (count + 1);
+
+    const priceToY = (p) =>
+        h - ((p - minP) / (maxP - minP)) * (h * 0.9) - h * 0.05;
+
+    // === 캔들 그리기 ===
+    candles.forEach((c, i) => {
+        const xCenter = gap + i * (candleWidth + gap) + candleWidth / 2;
+
+        const yHigh = priceToY(c.high);
+        const yLow  = priceToY(c.low);
+        const yOpen = priceToY(c.open);
+        const yClose = priceToY(c.close);
+
+        const isUp = c.close >= c.open;
+        const color = isUp ? "#ff4444" : "#44aaff";
+
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(xCenter, yHigh);
+        ctx.lineTo(xCenter, yLow);
+        ctx.stroke();
+
+        const top = Math.min(yOpen, yClose);
+        const bottom = Math.max(yOpen, yClose);
+        const bodyH = Math.max(2, bottom - top);
+
+        ctx.fillStyle = color;
+        ctx.fillRect(xCenter - candleWidth / 2, top, candleWidth, bodyH);
+    });
+
+    // ===== 이동평균선 =====
+    const arr = candles;
+
+    const ma5   = calcMA(arr, 5);
+    const ma20  = calcMA(arr, 20);
+    const ma60  = calcMA(arr, 60);
+    const ma120 = calcMA(arr, 120);
+
+    const drawMA = (data, color, offset = 0) => {
+        if (!data.length) return;
+
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+
+        const gapX = w / arr.length;
+
+        data.forEach((price, i) => {
+            const x = i * gapX + gapX / 2 + offset;
+            const y = priceToY(price);
+
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+
+        ctx.stroke();
+    };
+
+    // 🔥 온/오프 상태에 따라 그리기
+    if (MA_VISIBLE.ma5)   drawMA(ma5,   "rgba(0,255,0,0.7)", 0); // 초
+    if (MA_VISIBLE.ma20)  drawMA(ma20,  "rgba(255,80,80,0.7)", 1); // 빨
+    if (MA_VISIBLE.ma60)  drawMA(ma60,  "rgba(255,255,100,0.7)", 2); // 노
+    if (MA_VISIBLE.ma120) drawMA(ma120, "rgba(100,160,255,0.7)", 3); // 보
+}
+/* ===============================
+   📌 이동평균선 ON/OFF 설정
+=============================== */
+const MA_VISIBLE = {
+    ma5: true,
+    ma20: true,
+    ma60: true,
+    ma120: true
+};
+
+function toggleMA(type) {
+    MA_VISIBLE[type] = !MA_VISIBLE[type];
+
+    const btn = document.querySelector(`#ma-toggle button[onclick*="${type}"]`);
+    if (btn) {
+        btn.style.background = MA_VISIBLE[type] ? "#3b3b3b" : "#222";
+        btn.style.color = MA_VISIBLE[type] ? "#fff" : "#777";
+    }
+
+    drawCandles();
+}
+/* ===============================
+   📌 이동평균선(MA) 그리기
+=============================== */
+function drawMAline(maData, color, offset) {
+    const ctx = stockChartCtx;
+    const w = stockChartCanvas.width;
+    const h = stockChartCanvas.height;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    const gap = (w / maData.length);
+
+    maData.forEach((price, i) => {
+        const candles = marketState[selectedSymbol].candles;
+        const allData = [...candles, marketState[selectedSymbol].currentCandle];
+
+        const minP = Math.min(...allData.map(c => c.low));
+        const maxP = Math.max(...allData.map(c => c.high));
+        const y = h - ((price - minP) / (maxP - minP)) * (h * 0.9) - h * 0.05;
+
+        const x = i * gap + gap / 2 + offset;
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    });
+
+    ctx.stroke();
+}
+
+/* ===============================
+   📌 닫기 버튼 (📈창)
+=============================== */
+function closeStock() {
+    document.getElementById("stock-ui").style.display = "none";
+    showPet();
+}
+
+/* ===============================
+   📌 매수/매도 로직
+=============================== */
+async function openBuy() {
+    TRADE_MODE = "BUY";
+    const st = marketState[selectedSymbol];
+
+    document.getElementById("trade-title").textContent = "매수 (BUY)";
+    document.getElementById("trade-price").textContent = st.price.toFixed(2);
+    document.getElementById("trade-error").textContent = "";
+
+    // 🔥 잔액 불러오기
+    const r = await fetch(`/api/balance?id=${USER_ID}`);
+    const data = await r.json();
+    const balance = data.balance || 0;
+
+    // 잔액 표시
+    document.getElementById("trade-balance").textContent =
+        `잔액: ${formatToUnit(balance)}`;
+
+    // 🔥 최대 매수 가능 수량 계산
+    const maxAmount = balance / st.price;
+
+    document.getElementById("trade-max").textContent =
+        `최대 매수 가능: ${formatToUnit(maxAmount)}`;
+
+    openPopup("trade-screen");
+}
+
+function openSell() {
+    TRADE_MODE = "SELL";
+    const st = marketState[selectedSymbol];
+    document.getElementById("trade-title").textContent = "매도 (SELL)";
+    document.getElementById("trade-price").textContent = st.price.toFixed(2);
+    document.getElementById("trade-error").textContent = "";
+    updateTradeBalance(); // ⭐ 잔액 표시
+    openPopup("trade-screen");
+}
+
+function closeTrade() {
+    closePopup("trade-screen");
+}
+async function submitTrade() {
+    const raw = document.getElementById("trade-amount").value.trim();
+    const amount = parseAmount(raw);
+    const errorBox = document.getElementById("trade-error");
+    errorBox.textContent = "";
+
+    // 🔥 단위 포함 입력 허용 체크
+    if (!amount || isNaN(amount) || amount <= 0) {
+        errorBox.textContent = "수량을 올바르게 입력하세요. 예: 1A, 2B";
+        return;
+    }
+
+    if (!USER_ID) {
+        errorBox.textContent = "로그인 후 이용해주세요.";
+        return;
+    }
+
+    const symbol = selectedSymbol;
+    const price = marketState[symbol].price;
+
+    const payload = { id: USER_ID, symbol, amount, price };
+    let url = "/api/stock/buy";
+    if (TRADE_MODE === "SELL") url = "/api/stock/sell";
+
+    const r = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload)
+    });
+
+    const data = await r.json();
+
+    if (data.error) {
+        errorBox.textContent = data.error;
+        return;
+    }
+
+    refreshBalance();
+    closeTrade();
+}
+
+/* ===============================
+   📌 주식 시스템 초기 실행 + 거래창 위치 패치
+=============================== */
+
+// DOM 로드 후 stock-trade를 stock-ui 안으로 이동 (UI는 그대로, 구조만 정리)
+window.addEventListener("DOMContentLoaded", () => {
+    const trade = document.getElementById("stock-trade");
+    const stockUI = document.getElementById("stock-ui");
+    if (trade && stockUI && trade.parentElement !== stockUI) {
+        stockUI.appendChild(trade);
+    }
+});
+
+initMarket();
+setInterval(tickMarket, TICK_MS);
+
+async function updateBottomPanel() {
+    if (!USER_ID) return;
+
+    // 1) 잔액
+    const balRes = await fetch(`/api/balance?id=${USER_ID}`);
+    const balData = await balRes.json();
+    const balance = balData.balance || 0;
+
+    // 2) 적금 정보
+    const savRes = await fetch(`/api/saving/info?id=${USER_ID}`);
+    const savData = await savRes.json();
+
+    const saving1Data = savData.active[0] || null;
+    const saving2Data = savData.active[1] || null;
+
+    // 적금 수익 계산
+    const s1 = calcSavingProfit(saving1Data);
+    const s2 = calcSavingProfit(saving2Data);
+
+    // 3) 보유 주식 평가금
+    const stockRes = await fetch("/api/stocks");
+    const stockData = await stockRes.json();
+
+    let totalStockValue = 0;
+
+    if (stockData[USER_ID]) {
+        for (const symbol in stockData[USER_ID]) {
+            const st = stockData[USER_ID][symbol];
+            const amount = Number(st.amount);
+            const price = marketState[symbol]?.price || 0;
+
+            totalStockValue += amount * price;
+        }
+    }
+
+    // 4) 적금 박스에 표시할 텍스트 생성 함수
+    function labelText(data, info) {
+        if (!data) return "없음";
+
+        const name = data.product === "soso" ? "소소하게" : "한방";
+        const profit = formatToUnit(info.profit);
+        const rate = info.rate.toFixed(2);
+
+        return `${name}\n${profit} (${rate}%)`;
+    }
+
+    // 5) 색상 적용 함수
+    function colorize(element, rate) {
+        if (rate > 0) element.style.color = "#4CAF50"; // 초록(+)
+        else if (rate < 0) element.style.color = "#FF5252"; // 빨강(-)
+        else element.style.color = "#ffffff"; // 기본 하양
+    }
+
+    // 스타일 설정 (줄 바꿈 허용)
+    const el1 = document.getElementById("saving-1-value");
+    const el2 = document.getElementById("saving-2-value");
+    el1.style.whiteSpace = "pre-line";
+    el2.style.whiteSpace = "pre-line";
+
+    // 내용 적용
+    el1.textContent = labelText(saving1Data, s1);
+    el2.textContent = labelText(saving2Data, s2);
+
+    // 색상 적용
+    // colorize(el1, s1.rate);
+    // colorize(el2, s2.rate);
+
+    // 6) 주식 값 출력
+    const stockSellEl = document.getElementById("stock-sell-value");
+    const stockBuyEl = document.getElementById("stock-buy-value");
+
+    if (totalStockValue > 0) {
+        stockSellEl.style.color = "#FF5252"; // 빨강
+        stockBuyEl.style.color = "#4CAF50"; // 초록
+    } else {
+        stockSellEl.style.color = "#ffffff";
+        stockBuyEl.style.color = "#ffffff";
+    }
+
+    // 7) 총합 계산
+    const total = balance + totalStockValue +
+        (saving1Data?.amount || 0) +
+        (saving2Data?.amount || 0);
+
+    // 수익률 표시
+    const stockRate =
+        totalStockValue > 0
+            ? ((totalStockValue / (balance + (saving1Data?.amount || 0) + (saving2Data?.amount || 0))) * 100).toFixed(2)
+            : "0.00";
+
+    const savingInterest = (s1.profit + s2.profit);
+
+    document.getElementById("info-total").innerHTML =
+        `총합: ${formatToUnit(total)}<br>` +
+        `수익률 ${stockRate}% · 이자 ${formatToUnit(savingInterest)}`;
+}
+setInterval(updateBottomPanel, 2000);
+
+/* ===============================
+   🔥 반드시 필요! — 단위 변환 함수
+=============================== */
+function formatToUnit(num) {
+    if (num < 1000) return num.toLocaleString();
+
+    const units = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let tier = 0;
+
+    while (num >= 1000) {
+        num /= 1000;
+        tier++;
+    }
+
+    const unit = units[(tier - 1) % 26];
+    const quote = "'".repeat(Math.floor((tier - 1) / 26));
+
+    return num.toFixed(2) + unit + quote;
+}
+function parseAmount(text) {
+    if (typeof text === "number") return text;
+    if (!text) return NaN;
+
+    text = String(text).trim().toUpperCase();
+
+    if (!isNaN(Number(text))) return Number(text);
+
+    const m = text.match(/^([0-9\.]+)\s*([A-Z])(\'*)$/);
+    if (!m) return NaN;
+
+    const num = parseFloat(m[1]);
+    const unit = m[2];
+    const tier = m[3].length;
+
+    const base = unit.charCodeAt(0) - 65; // A=0
+    const exp = (base + 1) + (tier * 26);
+
+    return num * (1000 ** exp);
+}
+function calcSavingProfit(saving) {
+    if (!saving) return { profit: 0, rate: 0 };
+
+    const principal = saving.amount;  // 원금
+    const rate = saving.rate;         // %, 또는 배수
+
+    let finalAmount = principal;
+
+    if (saving.product === "soso") {
+        // 소소하게 = % 이율
+        finalAmount = principal * (1 + rate / 100);
+    } else {
+        // 한방 = 배수
+        finalAmount = principal * rate;
+    }
+
+    const profit = finalAmount - principal;
+    const profitRate = profit / principal * 100;
+
+    return {
+        profit,
+        rate: profitRate
+    };
+}
+async function updateTradeBalance() {
+    const r = await fetch(`/api/balance?id=${USER_ID}`);
+    const data = await r.json();
+    document.getElementById("trade-balance").textContent =
+        `잔액: ${formatToUnit(data.balance)}`;
+}
+
+/* ===============================
+   📌 이동평균 계산 함수
+=============================== */
+function calcMA(candles, period) {
+    if (candles.length < period) return [];
+
+    const ma = [];
+    for (let i = period - 1; i < candles.length; i++) {
+        let sum = 0;
+        for (let j = i - period + 1; j <= i; j++) {
+            sum += candles[j].close;
+        }
+        ma.push(sum / period);
+    }
+    return ma;
+}
+/* ============================================================
+   🐾 펫 시스템 - 2단계: 애니메이션 & 상태 엔진
+   (UI 수정 없음, 기존 로직 영향 없음)
+============================================================ */
+
+const PET = {
+    type: "cat",          // 현재 펫 종류 (지금은 고양이)
+    state: "idle",        // idle / happy / angry / sleep / etc
+    frame: 0,
+    frames: [],
+    frameDelay: 120,      // 프레임 속도(밀리세컨드)
+    lastFrameTime: 0,
+};
+
+/* -------------------------------------------
+   📌 상태별 폴더 경로 자동 생성
+------------------------------------------- */
+function getPetFolder(state) {
+    return `/assets/pets/${PET.type}/${state}`;
+}
+
+/* -------------------------------------------
+   📌 폴더에 있는 PNG 프레임 자동 로드
+   ※ 파일 이름은 01.png ~ 20.png 형식이면 모두 자동 감지됨
+------------------------------------------- */
+async function loadPetFrames(state) {
+    const folder = getPetFolder(state);
+
+    const possible = [];
+    for (let i = 1; i <= 40; i++) {
+        const num = String(i).padStart(2, "0");
+        possible.push(`${folder}/${num}.png`);
+    }
+
+    const result = [];
+
+    for (const url of possible) {
+        const ok = await checkImageExists(url);
+        if (ok) result.push(url);
+    }
+
+    return result;
+}
+
+/* 이미지 존재 여부 체크 */
+function checkImageExists(url) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.src = url;
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+    });
+}
+
+/* -------------------------------------------
+   📌 펫 상태 변경 (idle → happy 등)
+------------------------------------------- */
+async function setPetState(newState) {
+    PET.state = newState;
+    PET.frame = 0;
+
+    const frames = await loadPetFrames(newState);
+
+    if (frames.length === 0) {
+        console.warn("⚠️ 프레임 없음:", newState);
+        return;
+    }
+
+    PET.frames = frames;
+}
+
+/* -------------------------------------------
+   📌 애니메이션 매 프레임 갱신
+------------------------------------------- */
+function updatePetAnimation(timestamp) {
+    const img = document.getElementById("pet-sprite");
+    if (!img) return;
+
+    if (PET.frames.length > 0) {
+        if (timestamp - PET.lastFrameTime > PET.frameDelay) {
+            PET.lastFrameTime = timestamp;
+            PET.frame = (PET.frame + 1) % PET.frames.length;
+
+            img.src = PET.frames[PET.frame];
+        }
+    }
+
+    requestAnimationFrame(updatePetAnimation);
+}
+
+/* -------------------------------------------
+   📌 초기 실행
+------------------------------------------- */
+async function initPet() {
+    await setPetState("idle");  // 기본 idle 상태
+    requestAnimationFrame(updatePetAnimation);
+}
+
+/* 게임 시작 시 자동 실행 */
+window.addEventListener("load", initPet);
+
+const pet = document.getElementById("pet");
+
+let frame = 0;
+const totalFrames = 10;
+
+setInterval(() => {
+    const frameWidth = pet.clientWidth;  // ← 현재 표시되는 애니메이션 폭으로 자동 계산
+    pet.style.backgroundPosition = `-${frame * frameWidth}px 0px`;
+    frame = (frame + 1) % totalFrames;
+}, 120);
+
+/* ===============================
+   🐱 고양이 표시/숨김 중앙관리
+=============================== */
+function showPet() {
+    // 📌 주식창이 열려 있으면 고양이 숨김 유지
+    const stockUI = document.getElementById("stock-ui");
+    if (stockUI && stockUI.style.display !== "none") return;
+
+    // 📌 방 스킨 상점이 열려 있으면 고양이 숨김 유지
+    const roomShop = document.getElementById("room-shop");
+    if (roomShop && roomShop.style.display !== "none") return;
+
+    // 📌 정상적으로 표시
+    const pet = document.getElementById("pet-container");
+    if (pet) pet.style.display = "block";
+}
+function hidePet() {
+    const pet = document.getElementById("pet-container");
+    if (pet) pet.style.display = "none";
+}
+/* ===============================
+   🏠 방 스킨 시스템
+=============================== */
+function openRoomShop() {
+    renderRoomShopUI();
+    const shop = document.getElementById("room-shop");
+    shop.style.display = "flex"; // popup-screen 기본 display:block 무시
+    hidePet();
+}
+
+// 방 스킨 목록
+const roomSkins = [
+    { id: "Room1", price: 0 },
+    { id: "Room2", price: 10 },
+    { id: "Room3", price: 20 },
+    { id: "Room4", price: 40 },
+    { id: "Room5", price: 70 },
+    { id: "Room6", price: 90 },
+    { id: "Room7", price: 110 },
+    { id: "Room8", price: 150 },
+    { id: "Room9", price: 200 },
+    { id: "Room10", price: 225 },
+    { id: "Room11", price: 260 },
+    { id: "Room12", price: 290 },
+    { id: "Room13", price: 315 },
+    { id: "Room14", price: 340 },
+    { id: "Room15", price: 400 },
+];
+
+// 상점 열기
+function loadRoomShopItems() {
+    const container = document.getElementById("room-shop-items");
+    container.innerHTML = "";
+
+    roomSkins.forEach(skin => {
+        let btnText = "";
+        let disabled = false;
+
+        if (skin.id === currentRoomSkin) {
+            btnText = "✔ 적용됨";
+            disabled = true;
+        }
+        else if (ownedRoomSkins.includes(skin.id)) {
+            btnText = "적용하기";
+        }
+        else {
+            btnText = `${skin.price}C 구매`;
+        }
+
+        container.innerHTML += `
+            <div class="shop-item">
+                <img src="/assets/rooms/${skin.id}.png" alt="${skin.id}">
+                <div class="shop-name">${skin.id}</div>
+                <button onclick="selectRoom('${skin.id}', ${skin.price})"
+                    ${disabled ? "disabled" : ""}>
+                    ${btnText}
+                </button>
+            </div>
+        `;
+    });
+}
+
+// 구매 또는 선택 이벤트 (일단 알림으로만 구현)
+async function selectRoom(id, price) {
+     price = Number(price);
+    // 이미 보유한 경우
+    if (ownedRoomSkins.includes(id)) {
+        applyRoomSkin(id);
+        renderRoomShopUI();
+        return;
+    }
+
+    const balanceRes = await fetch(`/api/balance?id=${USER_ID}`);
+    const balanceData = await balanceRes.json();
+    const C = balanceData.balance || 0;
+
+    if (C < price) {
+        alert("❌ 잔액이 부족합니다!");
+        return;
+    }
+
+    // 서버로 구매 요청
+    const res = await fetch("/api/buyRoomSkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: USER_ID, skin: id, price })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+        alert(data.error);
+        return;
+    }
+
+    ownedRoomSkins.push(id);
+
+    applyRoomSkin(id);
+    renderRoomShopUI();
+    refreshBalance();
+
+    showToast(`🎉 ${id} 스킨 구매 완료!`);
+}
+
+let currentRoomSkin = "Room1";
+let ownedRoomSkins = ["Room1"]; // 기본 값
+
+async function loadRoomData() {
+    const r = await fetch(`/api/rooms?id=${USER_ID}`);
+    const data = await r.json();
+
+    if (data.error) return;
+
+    ownedRoomSkins = data.ownedRooms;
+    currentRoomSkin = data.currentRoom;
+
+    applyRoomSkin(currentRoomSkin);
+}
+
+// ⭐ 배경 적용
+function applyRoomSkin(id) {
+    currentRoomSkin = id;
+    localStorage.setItem("roomSkin", id);
+
+    document.getElementById("game-container").style.backgroundImage =
+        `url('/assets/rooms/${id}.png')`;
+
+    renderRoomShopUI();
+}
+// ⭐ 상점 UI 업데이트
+window.addEventListener("load", () => {
+    applyRoomSkin(currentRoomSkin);
+});
+
+// 상점 UI 렌더링    
+function openMyRooms() {
+    const list = document.getElementById("my-room-list");
+    list.innerHTML = "";
+
+    ownedRoomSkins.forEach(id => {
+        const applied = (id === currentRoomSkin);
+
+        list.innerHTML += `
+            <div class="my-room-card">
+                <img src="/assets/rooms/${id}.png">
+                <div style="margin-top:6px; font-size:16px; font-weight:bold;">${id}</div>
+                <button onclick="applyRoomSkin('${id}')" 
+                    style="background:${applied ? '#4caf50' : '#ffc533'}">
+                    ${applied ? "✔ 적용됨" : "적용하기"}
+                </button>
+            </div>
+        `;
+    });
+
+    openPopup("my-rooms");
+}
+
+fetch(`/api/balance?id=${USER_ID}`)
+
+function renderRoomShopUI() {
+    loadRoomShopItems(); // 다시 리스트를 그려 UI 업데이트
+}
+/* ===============================
+   🏆 포디움 랭킹 데이터 렌더링
+=============================== */
+function renderPodiumRanking(ranking) {
+    const items = document.querySelectorAll(".podium-item");
+
+    const first  = items[1];
+    const second = items[0];
+    const third  = items[2];
+
+    const podium = [first, second, third];
+
+    podium.forEach((elem, index) => {
+        const data = ranking[index];
+
+        if (data) {
+            elem.querySelector(".name").textContent = data.name;
+            elem.querySelector(".coin").textContent = formatToUnit(data.total);
+        }
+    });
+
+    // 4등 이후
+    const list = document.getElementById("podium-list");
+    list.innerHTML = "";
+    ranking.slice(3).forEach((user, i) => {
+        list.innerHTML += `
+            <div class="item">
+                <span>${i+4}위 · ${user.name}</span>
+                <span>${formatToUnit(user.total)}</span>
+            </div>
+        `;
+    });
+}
+/* ===============================
+   🏆 포디움 랭킹 시스템
+=============================== */    
+function closePodium() {
+    document.getElementById("podium-ranking").style.display = "none";
+    showPet();
+}
+</script>
+</body>
+</html>
