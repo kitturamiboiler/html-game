@@ -3,13 +3,12 @@
   "version": "1.0.0",
   "description": "My Coin Game Server",
   "main": "server/server.js",
-
   "scripts": {
     "start": "node server/server.js"
   },
-
   "dependencies": {
     "express": "^5.1.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "pg": "^8.11.3"
   }
 }
