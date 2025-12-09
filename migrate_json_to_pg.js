@@ -52,21 +52,31 @@ async function run() {
         }
 
         // 2) users (+ room 정보)
-        console.log("➡ users / room_* 마이그레이션");
-        for (const [discordId, u] of Object.entries(userData)) {
-            const name =
-                u.name ||
-                userMap[discordId] ||
-                "유저" + (1000 + Math.floor(Math.random() * 9000));
+console.log("➡ users / room_* 마이그레이션");
+for (const [discordId, u] of Object.entries(userData)) {
+    if (!u) continue;
 
-            await pool.query(
-                `INSERT INTO users (discord_id, name, balance, join_date)
-                 VALUES ($1, $2, $3, $4)
-                 ON CONFLICT (discord_id)
-                 DO UPDATE SET name = EXCLUDED.name,
-                               balance = EXCLUDED.balance`,
-                [discordId, Number(u.balance) || 0, u.joinDate || Date.now()]
-            );
+    const name =
+        u.name ||
+        userMap[discordId] ||
+        "유저" + (1000 + Math.floor(Math.random() * 9000));
+
+    await pool.query(
+        `INSERT INTO users (discord_id, name, balance, join_date)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (discord_id)
+         DO UPDATE SET name = EXCLUDED.name,
+                       balance = EXCLUDED.balance`,
+        [
+            discordId,
+            name,
+            Number(u.balance) || 0,
+            u.joinDate || Date.now()
+        ]
+    );
+
+    // room 데이터 그대로...
+
 
             // 방 스킨/현재 방
             if (Array.isArray(u.ownedRooms)) {
