@@ -5,14 +5,10 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server Running on port ${PORT}`);
-});
 app.use(express.json());
-
-app.use(express.static(path.join(__dirname, "../public")));
 app.use(express.urlencoded({ extended: true }));
 
+app.use(express.static(path.join(__dirname, "../public")));
 
 /* ============================================
    ⭐ 수량 파싱 (1A, 2B', 3C'' 등)
@@ -699,11 +695,12 @@ app.post("/api/applyRoomSkin", (req, res) => {
 
     res.json({ success: true, currentRoom: skin });
 });
-
 /* ============================================
    🚀 서버 실행
 ============================================ */
 app.listen(PORT, () => {
-    console.log(`🚀 Server Running: http://localhost:${PORT}`);
+    console.log(`🚀 Server Running on port ${PORT}`);
 });
+
+
 
